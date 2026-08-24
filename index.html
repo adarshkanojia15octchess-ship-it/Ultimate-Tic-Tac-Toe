@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ULTIMATE TIC-TAC-TOE — Strategy. Prediction. Precision.</title>
+  
+  <!-- Typography System -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* -------------------------------------------------------------------------- */
+    /* 1. DESIGN SYSTEM & DYNAMIC THEMING SYSTEM                                  */
+    /* -------------------------------------------------------------------------- */
+    :root {
+      /* Cosmic Command (Default) */
+      --bg-dark: #030712;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --cyan-glow: #38bdf8;
+      --pink-glow: #f43f5e;
+      --accent-gold: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-tech: 'Space Grotesk', monospace;
+      --font-sans: 'DM Sans', -apple-system, sans-serif;
+      --radius: 12px;
+      --active-board-bg: rgba(56, 189, 248, 0.08);
+      --active-board-border: #38bdf8;
+      --gradient-cosmic: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+    }
+
+    body.theme-obsidian {
+      --bg-dark: #09090b;
+      --bg-card: rgba(24, 24, 27, 0.8);
+      --border-glow: rgba(255, 255, 255, 0.15);
+      --cyan-glow: #fafafa;
+      --pink-glow: #71717a;
+      --accent-gold: #d4d4d8;
+      --text-main: #fafafa;
+      --text-muted: #a1a1aa;
+      --active-board-bg: rgba(255, 255, 255, 0.05);
+      --active-board-border: #ffffff;
+      --gradient-cosmic: linear-gradient(135deg, #3f3f46 0%, #09090b 100%);
+    }
+
+    body.theme-quantum {
+      --bg-dark: #090014;
+      --bg-card: rgba(26, 8, 48, 0.8);
+      --border-glow: rgba(168, 85, 247, 0.35);
+      --cyan-glow: #a855f7;
+      --pink-glow: #06b6d4;
+      --accent-gold: #ec4899;
+      --text-main: #fcf5ff;
+      --text-muted: #c084fc;
+      --active-board-bg: rgba(168, 85, 247, 0.1);
+      --active-board-border: #a855f7;
+      --gradient-cosmic: linear-gradient(135deg, #7e22ce 0%, #06b6d4 100%);
+    }
+
+    body.theme-solar {
+      --bg-dark: #120903;
+      --bg-card: rgba(43, 21, 7, 0.8);
+      --border-glow: rgba(245, 158, 11, 0.3);
+      --cyan-glow: #f59e0b;
+      --pink-glow: #ef4444;
+      --accent-gold: #fbbf24;
+      --text-main: #fffbeb;
+      --text-muted: #d97706;
+      --active-board-bg: rgba(245, 158, 11, 0.1);
+      --active-board-border: #f59e0b;
+      --gradient-cosmic: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+    }
+
+    body.theme-arctic {
+      --bg-dark: #031017;
+      --bg-card: rgba(8, 38, 56, 0.8);
+      --border-glow: rgba(6, 182, 212, 0.3);
+      --cyan-glow: #22d3ee;
+      --pink-glow: #38bdf8;
+      --accent-gold: #93c5fd;
+      --text-main: #f0fdf4;
+      --text-muted: #67e8f9;
+      --active-board-bg: rgba(34, 211, 238, 0.1);
+      --active-board-border: #22d3ee;
+      --gradient-cosmic: linear-gradient(135deg, #0891b2 0%, #1e3a8a 100%);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    /* Cosmic Background & Floating Particles Layer */
+    .space-bg { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, rgba(30, 27, 75, 0.3) 0%, rgba(3, 7, 18, 0.95) 75%); z-index: -2; }
+    .stars { position: fixed; inset: 0; background-image: radial-gradient(1.5px 1.5px at 20px 30px, var(--text-main), rgba(0,0,0,0)), radial-gradient(1.5px 1.5px at 70px 120px, var(--cyan-glow), rgba(0,0,0,0)); background-repeat: repeat; background-size: 250px 250px; opacity: 0.15; z-index: -1; }
+
+    /* Navigation Header */
+    header {
+      width: 100%;
+      max-width: 1050px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .brand-logo {
+      font-family: var(--font-display);
+      font-size: 1.7rem;
+      letter-spacing: 1px;
+      color: var(--text-main);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .nav-links { display: flex; gap: 24px; list-style: none; }
+    .nav-item {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .nav-item:hover, .nav-item.active { color: var(--cyan-glow); }
+
+    /* Layout Screens */
+    .screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 850px; padding: 20px; animation: fadeIn 0.35s ease-out forwards; }
+    .screen.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Glass Panels */
+    .glass-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius);
+      padding: 36px;
+      width: 100%;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .title-hero {
+      font-family: var(--font-display);
+      font-size: 4rem;
+      font-weight: 400;
+      line-height: 0.95;
+      text-align: center;
+      letter-spacing: -0.5px;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.75) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 28px;
+    }
+
+    /* Hero Background Graphic Animation */
+    .hero-visual {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 10px auto 30px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-grid-svg {
+      width: 100%;
+      height: 100%;
+      animation: gridPulse 8s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+    }
+    @keyframes gridPulse {
+      0% { transform: scale(0.96) rotate(0deg); opacity: 0.6; }
+      100% { transform: scale(1.04) rotate(4deg); opacity: 0.95; }
+    }
+
+    /* Buttons & Controls */
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-glow);
+      color: var(--text-main);
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); border-color: var(--cyan-glow); transform: translateY(-1px); }
+    .btn-primary { background: var(--gradient-cosmic); border: none; }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.15); box-shadow: 0 4px 25px rgba(56, 189, 248, 0.35); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .segmented { display: flex; background: rgba(0, 0, 0, 0.45); padding: 4px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); gap: 4px; margin-bottom: 18px; }
+    .segmented-btn { flex: 1; padding: 12px 8px; border: none; background: transparent; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .segmented-btn.active { background: rgba(255, 255, 255, 0.12); color: var(--cyan-glow); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+    /* HUD Controls */
+    .hud { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px 24px; background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 10px; margin-bottom: 20px; font-family: var(--font-tech); font-size: 0.85rem; }
+    .hud-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--cyan-glow); }
+
+    /* -------------------------------------------------------------------------- */
+    /* 2. BOARD RENDERING ENGINE                                                  */
+    /* -------------------------------------------------------------------------- */
+    .board-container { width: 100%; max-width: 520px; aspect-ratio: 1 / 1; margin: 0 auto 20px auto; }
+    
+    .single-board { display: grid; gap: 8px; width: 100%; height: 100%; }
+    .board-3x3 { grid-template-columns: repeat(3, 1fr); }
+    .board-4x4 { grid-template-columns: repeat(4, 1fr); }
+    .board-5x5 { grid-template-columns: repeat(5, 1fr); }
+
+    .meta-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; height: 100%; }
+    .mini-board {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px; position: relative; transition: all 0.25s ease;
+    }
+    .mini-board.active-playable {
+      background: var(--active-board-bg); border-color: var(--active-board-border);
+      box-shadow: 0 0 25px var(--active-board-bg);
+    }
+    .mini-board.won-x::after, .mini-board.won-o::after, .mini-board.won-draw::after {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 3.8rem; background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(4px); border-radius: 6px; z-index: 5;
+    }
+    .mini-board.won-x::after { content: "X"; color: var(--cyan-glow); text-shadow: 0 0 15px var(--cyan-glow); }
+    .mini-board.won-o::after { content: "O"; color: var(--pink-glow); text-shadow: 0 0 15px var(--pink-glow); }
+    .mini-board.won-draw::after { content: "-"; color: var(--text-muted); }
+
+    .cell {
+      background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glow); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-family: var(--font-tech); font-weight: 700; cursor: pointer;
+      transition: all 0.15s ease; font-size: 1.1rem; color: var(--text-main);
+    }
+    .single-board .cell { font-size: 2.6rem; border-radius: 10px; }
+    .cell:hover:not(.occupied) { background: rgba(56, 189, 248, 0.15); border-color: var(--cyan-glow); }
+    .cell.occupied { cursor: not-allowed; }
+    .cell.x-symbol { color: var(--cyan-glow); text-shadow: 0 0 12px var(--cyan-glow); }
+    .cell.o-symbol { color: var(--pink-glow); text-shadow: 0 0 12px var(--pink-glow); }
+
+    /* Analytics Dashboard Components */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-glow); border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-value { font-family: var(--font-tech); font-size: 1.6rem; font-weight: 700; color: var(--cyan-glow); }
+    .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px; }
+
+    /* Data Table */
+    .match-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; font-family: var(--font-tech); }
+    .match-table th, .match-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-glow); }
+    .match-table th { color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+
+    /* Custom Production Overlay Modals */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: var(--radius); padding: 36px; text-align: center; max-width: 460px; width: 90%; box-shadow: 0 30px 70px rgba(0,0,0,0.8); }
+
+    .lobby-box { background: rgba(0,0,0,0.4); border: 1px solid var(--border-glow); padding: 12px; border-radius: 8px; font-family: var(--font-tech); font-size: 1.1rem; color: var(--cyan-glow); margin: 16px 0; letter-spacing: 2px; }
+
+    @media (max-width: 600px) {
+      .title-hero { font-size: 2.8rem; }
+      .nav-links { display: none; }
+      .stats-grid { grid-template-columns: repeat(1, 1fr); }
+    }
+  </style>
+</head>
+<body class="theme-cosmic">
+
+  <div class="space-bg"></div>
+  <div class="stars"></div>
+
+  <!-- NAVIGATION HEADER -->
+  <header>
+    <a class="brand-logo" onclick="showScreen('screen-landing')">ULTIMATE TIC-TAC-TOE</a>
+    <ul class="nav-links">
+      <li class="nav-item" onclick="showScreen('screen-landing')">Home</li>
+      <li class="nav-item" onclick="showScreen('screen-setup')">Play</li>
+      <li class="nav-item" onclick="openOnlineLobby()">Online</li>
+      <li class="nav-item" onclick="openDashboard()">Analytics</li>
+      <li class="nav-item" onclick="showScreen('screen-themes')">Themes</li>
+    </ul>
+  </header>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 1. LANDING PAGE                                                          -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-landing" class="screen active">
+    <div class="glass-panel" style="text-align: center; margin-top: 10px;">
+      <h1 class="title-hero">ULTIMATE</h1>
+      <h1 class="title-hero" style="font-size: 2.4rem; margin-bottom: 2px;">TIC-TAC-TOE</h1>
+      <p class="subtitle">Strategy. Prediction. Precision.</p>
+
+      <!-- Animated Vector Grid Centerpiece -->
+      <div class="hero-visual">
+        <svg class="hero-grid-svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="33" y1="5" x2="33" y2="95" stroke="var(--cyan-glow)" stroke-opacity="0.5" />
+          <line x1="66" y1="5" x2="66" y2="95" stroke="var(--cyan-glow)" stroke-opacity="0.5" />
+          <line x1="5" y1="33" x2="95" y2="33" stroke="var(--cyan-glow)" stroke-opacity="0.5" />
+          <line x1="5" y1="66" x2="95" y2="66" stroke="var(--cyan-glow)" stroke-opacity="0.5" />
+          <!-- Animated Symbolic Elements -->
+          <circle cx="19" cy="19" r="6" stroke="var(--pink-glow)" stroke-width="2" />
+          <path d="M78 78 L88 88 M88 78 L78 88" stroke="var(--cyan-glow)" stroke-width="2" />
+          <path d="M78 19 L88 29 M88 19 L78 29" stroke="var(--text-muted)" stroke-width="1.5" />
+          <circle cx="19" cy="83" r="6" stroke="var(--text-muted)" stroke-width="1.5" />
+        </svg>
+      </div>
+
+      <div style="max-width: 340px; margin: 0 auto;">
+        <button class="btn btn-primary" onclick="showScreen('screen-setup')">Play Match</button>
+        <button class="btn" onclick="openOnlineLobby()">Online Platform</button>
+        <button class="btn" onclick="openPracticeSandbox()">Strategy Sandbox</button>
+        <button class="btn" onclick="openDashboard()">Performance Analytics</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 2. MATCH CONFIGURATION                                                   -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-setup" class="screen">
+    <div class="glass-panel">
+      <h2 style="font-family: var(--font-display); font-size: 2.2rem; text-align: center; margin-bottom: 20px;">Match Setup</h2>
+
+      <label class="stat-label" style="display:block; margin-bottom: 6px;">Game Architecture</label>
+      <div class="segmented">
+        <button class="segmented-btn active" onclick="setSetupOption('ultimate', true, this)">True Ultimate (9 Grids)</button>
+        <button class="segmented-btn" onclick="setSetupOption('ultimate', false, this)">Classic Single Grid</button>
+      </div>
+
+      <!-- Dynamic Architecture Context Note -->
+      <div id="architecture-note" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glow); padding: 12px; border-radius: 8px; margin-bottom: 18px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+        <strong style="color: var(--cyan-glow);">MECHANIC:</strong> Your move target determines which mini-grid your opponent must play next.
+      </div>
+
+      <div id="classic-size-select" style="display: none;">
+        <label class="stat-label" style="display:block; margin-bottom: 6px;">Board Dimensions</label>
+        <div class="segmented">
+          <button class="segmented-btn active" onclick="setSetupOption('size', 3, this)">3×3</button>
+          <button class="segmented-btn" onclick="setSetupOption('size', 4, this)">4×4</button>
+          <button class="segmented-btn" onclick="setSetupOption('size', 5, this)">5×5</button>
+        </div>
+      </div>
+
+      <label class="stat-label" style="display:block; margin-bottom: 6px;">Opponent</label>
+      <div class="segmented">
+        <button class="segmented-btn active" onclick="setSetupOption('mode', 'ai', this)">VS AI Persona</button>
+        <button class="segmented-btn" onclick="setSetupOption('mode', 'pvp', this)">Local Pass & Play</button>
+      </div>
+
+      <div id="persona-select">
+        <label class="stat-label" style="display:block; margin-bottom: 6px;">AI Persona</label>
+        <div class="segmented">
+          <button class="segmented-btn" onclick="setSetupOption('persona', 'rookie', this)">Rookie</button>
+          <button class="segmented-btn" onclick="setSetupOption('persona', 'guardian', this)">Guardian</button>
+          <button class="segmented-btn" onclick="setSetupOption('persona', 'aggressor', this)">Aggressor</button>
+          <button class="segmented-btn active" onclick="setSetupOption('persona', 'grandmaster', this)">Master</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top: 10px;" onclick="startMatch()">Engage Match</button>
+      <button class="btn" onclick="showScreen('screen-landing')">Back</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 3. GAME INTERFACE                                                        -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <span id="hud-status" class="hud-title">YOUR TURN — X</span>
+      <span id="hud-moves" style="color: var(--text-muted);">0 MOVES</span>
+    </div>
+
+    <div class="board-container">
+      <div id="board-root"></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%;">
+      <button class="btn" onclick="triggerHint()">Hint</button>
+      <button class="btn" onclick="triggerUndo()">Undo</button>
+      <button class="btn" onclick="startMatch()">Reset</button>
+      <button class="btn" onclick="showScreen('screen-landing')">Quit</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 4. PERFORMANCE ANALYTICS                                                -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-stats" class="screen">
+    <div class="glass-panel">
+      <h2 style="font-family: var(--font-display); font-size: 2.2rem; text-align: center; margin-bottom: 20px;">Performance Analytics</h2>
+      
+      <div class="stats-grid">
+        <div class="stat-card"><div id="stat-winrate" class="stat-value">0%</div><div class="stat-label">Win Rate</div></div>
+        <div class="stat-card"><div id="stat-streak" class="stat-value">0</div><div class="stat-label">Current Streak</div></div>
+        <div class="stat-card"><div id="stat-elo" class="stat-value">1200</div><div class="stat-label">Rating</div></div>
+      </div>
+
+      <!-- Rating Progression Visualization -->
+      <label class="stat-label" style="display:block; margin-bottom: 8px;">Rating Progression</label>
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glow); padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+        <svg viewBox="0 0 300 60" style="width: 100%; height: 60px; fill: none; stroke: var(--cyan-glow); stroke-width: 2;">
+          <polyline points="0,50 50,45 100,48 150,30 200,35 250,15 300,20" />
+        </svg>
+      </div>
+
+      <label class="stat-label" style="display:block; margin-bottom: 6px;">Match History</label>
+      <table class="match-table">
+        <thead>
+          <tr><th>Mode</th><th>Result</th><th>Rating Change</th></tr>
+        </thead>
+        <tbody id="match-history-rows">
+          <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No recorded matches yet.</td></tr>
+        </tbody>
+      </table>
+
+      <button class="btn" style="margin-top: 20px;" onclick="showScreen('screen-landing')">Back</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 5. THEME STUDIO WITH LIVE PREVIEW                                        -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-themes" class="screen">
+    <div class="glass-panel">
+      <h2 style="font-family: var(--font-display); font-size: 2.2rem; text-align: center; margin-bottom: 6px;">Theme Studio</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">Hover or tap to live-preview</p>
+      
+      <button class="btn" onmouseenter="previewTheme('cosmic')" onclick="applyTheme('cosmic')">🌌 Cosmic Command</button>
+      <button class="btn" onmouseenter="previewTheme('obsidian')" onclick="applyTheme('obsidian')">🖤 Obsidian Minimal</button>
+      <button class="btn" onmouseenter="previewTheme('quantum')" onclick="applyTheme('quantum')">🔮 Neon Quantum</button>
+      <button class="btn" onmouseenter="previewTheme('solar')" onclick="applyTheme('solar')">☀️ Solar Flare</button>
+      <button class="btn" onmouseenter="previewTheme('arctic')" onclick="applyTheme('arctic')">❄️ Arctic Void</button>
+      
+      <button class="btn btn-primary" style="margin-top: 10px;" onclick="showScreen('screen-landing')">Confirm Theme</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- 6. SANDBOX & STRATEGY LAB                                                -->
+  <!-- ------------------------------------------------------------------------ -->
+  <section id="screen-sandbox" class="screen">
+    <div class="glass-panel">
+      <h2 style="font-family: var(--font-display); font-size: 2.2rem; text-align: center; margin-bottom: 4px;">Strategy Lab</h2>
+      <p class="subtitle">Manual board state evaluator</p>
+
+      <div class="board-container" style="max-width: 320px;">
+        <div id="sandbox-board" class="single-board board-3x3"></div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button class="btn" onclick="sandboxBrush='X'">Place X</button>
+        <button class="btn" onclick="sandboxBrush='O'">Place O</button>
+        <button class="btn" onclick="clearSandbox()">Clear</button>
+      </div>
+      <button class="btn btn-primary" onclick="evaluateSandbox()">Analyze Evaluation</button>
+      <div id="sandbox-output" style="text-align: center; font-family: var(--font-tech); color: var(--cyan-glow); margin-top: 10px;"></div>
+      <button class="btn" style="margin-top: 10px;" onclick="showScreen('screen-landing')">Back</button>
+    </div>
+  </section>
+
+  <!-- PRODUCTION LOBBY OVERLAY MODAL -->
+  <div id="modal-lobby" class="modal-overlay">
+    <div class="modal-content">
+      <h2 style="font-family: var(--font-display); font-size: 2.2rem; margin-bottom: 4px;">PRIVATE MATCH CREATED</h2>
+      <p class="subtitle" style="margin-bottom: 10px;">Share link to invite opponent</p>
+      <div id="lobby-code-display" class="lobby-box">UTTT-889X</div>
+      <button class="btn btn-primary" onclick="copyLobbyLink()">Copy Match Link</button>
+      <button class="btn" onclick="closeLobbyModal()">Close Lobby</button>
+    </div>
+  </div>
+
+  <!-- VICTORY MODAL -->
+  <div id="modal-victory" class="modal-overlay">
+    <div class="modal-content">
+      <h1 id="modal-title" style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 6px;">VICTORY</h1>
+      <p id="modal-sub" class="subtitle" style="margin-bottom: 20px;">MATCH CONCLUDED</p>
+      <button class="btn btn-primary" onclick="closeModal(); startMatch();">Rematch</button>
+      <button class="btn" onclick="closeModal(); showScreen('screen-landing');">Main Menu</button>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- JAVASCRIPT ENGINE ARCHITECTURE                                          -->
+  <!-- ------------------------------------------------------------------------ -->
+  <script>
+    const EMPTY = "";
+    const X = "X";
+    const O = "O";
+    const DRAW = "DRAW";
+    const STORAGE_KEY = "ultimate_ttt_v3";
+
+    const PERSONAS = {
+      rookie: { name: "The Rookie", difficulty: "easy" },
+      guardian: { name: "The Guardian", difficulty: "medium" },
+      aggressor: { name: "The Aggressor", difficulty: "hard" },
+      grandmaster: { name: "The Grandmaster", difficulty: "impossible" }
+    };
+
+    let state = {
+      settings: { ultimate: true, size: 3, mode: "ai", persona: "grandmaster", theme: "cosmic" },
+      stats: { games: 0, wins: 0, draws: 0, streak: 0, elo: 1200 },
+      history: []
+    };
+
+    let activeMatch = null;
+    let sandboxBrush = X;
+    let sandboxGrid = Array(9).fill(EMPTY);
+
+    /* Engine Classes */
+    class UltimateEngine {
+      constructor() {
+        this.boards = Array(9).fill(null).map(() => Array(9).fill(EMPTY));
+        this.meta = Array(9).fill(EMPTY);
+        this.activeMini = -1;
+      }
+      checkLine(cells) {
+        const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for (const l of lines) {
+          if (cells[l[0]] !== EMPTY && cells[l[0]] === cells[l[1]] && cells[l[0]] === cells[l[2]]) return cells[l[0]];
+        }
+        return cells.includes(EMPTY) ? null : DRAW;
+      }
+      isValid(b, c) {
+        if (this.meta[b] !== EMPTY) return false;
+        if (this.activeMini !== -1 && this.activeMini !== b) return false;
+        return this.boards[b][c] === EMPTY;
+      }
+      place(b, c, symbol) {
+        if (!this.isValid(b, c)) return false;
+        this.boards[b][c] = symbol;
+        const res = this.checkLine(this.boards[b]);
+        if (res) this.meta[b] = res;
+        this.activeMini = (this.meta[c] === EMPTY) ? c : -1;
+        return true;
+      }
+      result() { return this.checkLine(this.meta); }
+    }
+
+    class SingleEngine {
+      constructor(size = 3) {
+        this.size = size;
+        this.area = size * size;
+        this.cells = Array(this.area).fill(EMPTY);
+      }
+      availableMoves() { return this.cells.map((v, i) => v === EMPTY ? i : null).filter(v => v !== null); }
+      place(idx, symbol) {
+        if (idx < 0 || idx >= this.area || this.cells[idx] !== EMPTY) return false;
+        this.cells[idx] = symbol;
+        return true;
+      }
+      result() {
+        const lines = [];
+        for (let r = 0; r < this.size; r++) {
+          const row = []; for (let c = 0; c < this.size; c++) row.push(r * this.size + c);
+          lines.push(row);
+        }
+        for (let c = 0; c < this.size; c++) {
+          const col = []; for (let r = 0; r < this.size; r++) col.push(r * this.size + c);
+          lines.push(col);
+        }
+        const d1 = [], d2 = [];
+        for (let i = 0; i < this.size; i++) {
+          d1.push(i * this.size + i);
+          d2.push(i * this.size + (this.size - i - 1));
+        }
+        lines.push(d1, d2);
+        for (const l of lines) {
+          const first = this.cells[l[0]];
+          if (first !== EMPTY && l.every(i => this.cells[i] === first)) return first;
+        }
+        return this.cells.includes(EMPTY) ? null : DRAW;
+      }
+    }
+
+    class AIPersona {
+      constructor(key) { this.difficulty = PERSONAS[key].difficulty; }
+      chooseSingle(board, symbol) {
+        const moves = board.availableMoves();
+        const opponent = symbol === X ? O : X;
+        if (this.difficulty === "easy") return moves[Math.floor(Math.random() * moves.length)];
+        for (const m of moves) {
+          board.place(m, symbol);
+          if (board.result() === symbol) { board.cells[m] = EMPTY; return m; }
+          board.cells[m] = EMPTY;
+        }
+        for (const m of moves) {
+          board.place(m, opponent);
+          if (board.result() === opponent) { board.cells[m] = EMPTY; return m; }
+          board.cells[m] = EMPTY;
+        }
+        return moves[Math.floor(Math.random() * moves.length)];
+      }
+      chooseUltimate(board, symbol) {
+        const valid = [];
+        for (let b = 0; b < 9; b++) {
+          for (let c = 0; c < 9; c++) {
+            if (board.isValid(b, c)) valid.push({ b, c });
+          }
+        }
+        return valid[Math.floor(Math.random() * valid.length)];
+      }
+    }
+
+    /* Core UI Logic */
+    function loadStorage() {
+      try {
+        const r = localStorage.getItem(STORAGE_KEY);
+        if (r) state = { ...state, ...JSON.parse(r) };
+      } catch(e) {}
+      applyTheme(state.settings.theme || 'cosmic');
+    }
+
+    function saveStorage() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function setSetupOption(key, val, btn) {
+      state.settings[key] = val;
+      btn.parentElement.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (key === 'ultimate') {
+        document.getElementById('classic-size-select').style.display = val ? 'none' : 'block';
+        document.getElementById('architecture-note').innerHTML = val 
+          ? `<strong style="color: var(--cyan-glow);">MECHANIC:</strong> Your move target determines which mini-grid your opponent must play next.`
+          : `<strong style="color: var(--cyan-glow);">MECHANIC:</strong> Standard alignment strategy across a unified grid.`;
+      }
+    }
+
+    function previewTheme(tKey) { document.body.className = `theme-${tKey}`; }
+    function applyTheme(tKey) {
+      state.settings.theme = tKey;
+      previewTheme(tKey);
+      saveStorage();
+    }
+
+    function startMatch() {
+      activeMatch = {
+        isUltimate: state.settings.ultimate,
+        board: state.settings.ultimate ? new UltimateEngine() : new SingleEngine(state.settings.size),
+        ai: new AIPersona(state.settings.persona),
+        turn: X,
+        history: [],
+        processing: false
+      };
+      showScreen('screen-game');
+      renderBoard();
+      updateHUD();
+    }
+
+    function renderBoard() {
+      const root = document.getElementById('board-root');
+      root.innerHTML = '';
+      if (activeMatch.isUltimate) {
+        const meta = document.createElement('div');
+        meta.className = 'meta-board';
+        for (let b = 0; b < 9; b++) {
+          const mini = document.createElement('div');
+          mini.className = `mini-board ${activeMatch.board.activeMini === b || activeMatch.board.activeMini === -1 ? 'active-playable' : ''}`;
+          const mRes = activeMatch.board.meta[b];
+          if (mRes === X) mini.classList.add('won-x');
+          if (mRes === O) mini.classList.add('won-o');
+          if (mRes === DRAW) mini.classList.add('won-draw');
+          for (let c = 0; c < 9; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            const val = activeMatch.board.boards[b][c];
+            if (val !== EMPTY) {
+              cell.classList.add('occupied', val === X ? 'x-symbol' : 'o-symbol');
+              cell.textContent = val;
+            }
+            cell.onclick = () => handleMove(b, c);
+            mini.appendChild(cell);
+          }
+          meta.appendChild(mini);
+        }
+        root.appendChild(meta);
+      } else {
+        const grid = document.createElement('div');
+        grid.className = `single-board board-${activeMatch.board.size}x${activeMatch.board.size}`;
+        for (let i = 0; i < activeMatch.board.area; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const val = activeMatch.board.cells[i];
+          if (val !== EMPTY) {
+            cell.classList.add('occupied', val === X ? 'x-symbol' : 'o-symbol');
+            cell.textContent = val;
+          }
+          cell.onclick = () => handleMove(null, i);
+          grid.appendChild(cell);
+        }
+        root.appendChild(grid);
+      }
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-status').textContent = `TURN — ${activeMatch.turn}`;
+      document.getElementById('hud-moves').textContent = `${activeMatch.history.length} MOVES`;
+    }
+
+    function handleMove(b, c) {
+      if (activeMatch.processing) return;
+      let ok = activeMatch.isUltimate ? activeMatch.board.place(b, c, activeMatch.turn) : activeMatch.board.place(c, activeMatch.turn);
+      if (!ok) return;
+
+      activeMatch.history.push({ b, c, symbol: activeMatch.turn });
+      renderBoard();
+      const res = activeMatch.board.result();
+      if (res) {
+        finishMatch(res);
+      } else {
+        activeMatch.turn = activeMatch.turn === X ? O : X;
+        updateHUD();
+        if (state.settings.mode === 'ai' && activeMatch.turn === O) {
+          activeMatch.processing = true;
+          document.getElementById('hud-status').textContent = "COMPUTER IS THINKING…";
+          setTimeout(() => {
+            if (activeMatch.isUltimate) {
+              const m = activeMatch.ai.chooseUltimate(activeMatch.board, O);
+              activeMatch.processing = false;
+              if (m) handleMove(m.b, m.c);
+            } else {
+              const m = activeMatch.ai.chooseSingle(activeMatch.board, O);
+              activeMatch.processing = false;
+              handleMove(null, m);
+            }
+          }, 350);
+        }
+      }
+    }
+
+    function triggerHint() {
+      if (activeMatch.isUltimate) {
+        const m = activeMatch.ai.chooseUltimate(activeMatch.board, activeMatch.turn);
+        if (m) alert(`Recommended Move: Sub-Grid ${m.b + 1}, Square ${m.c + 1}`);
+      } else {
+        const m = activeMatch.ai.chooseSingle(activeMatch.board, activeMatch.turn);
+        alert(`Recommended Move: Square ${m + 1}`);
+      }
+    }
+
+    function triggerUndo() {
+      if (activeMatch.history.length === 0) return;
+      const steps = (state.settings.mode === 'ai' && activeMatch.history.length >= 2) ? 2 : 1;
+      activeMatch.history.splice(-steps);
+      const nb = activeMatch.isUltimate ? new UltimateEngine() : new SingleEngine(state.settings.size);
+      for (const h of activeMatch.history) {
+        if (activeMatch.isUltimate) nb.place(h.b, h.c, h.symbol);
+        else nb.place(h.c, h.symbol);
+      }
+      activeMatch.board = nb;
+      activeMatch.turn = activeMatch.history.length % 2 === 0 ? X : O;
+      renderBoard();
+      updateHUD();
+    }
+
+    function finishMatch(res) {
+      state.stats.games++;
+      let eloDiff = 0;
+      if (res === X) {
+        state.stats.wins++; state.stats.streak++; eloDiff = 18; state.stats.elo += eloDiff;
+      } else if (res === O) {
+        state.stats.streak = 0; eloDiff = -12; state.stats.elo = Math.max(800, state.stats.elo + eloDiff);
+      } else {
+        state.stats.draws++;
+      }
+      state.history.unshift({
+        mode: activeMatch.isUltimate ? 'Ultimate' : `${state.settings.size}x${state.settings.size}`,
+        result: res === X ? 'WIN' : (res === O ? 'LOSS' : 'DRAW'),
+        elo: eloDiff > 0 ? `+${eloDiff}` : `${eloDiff}`
+      });
+      saveStorage();
+      document.getElementById('modal-title').textContent = res === DRAW ? "DRAW" : "VICTORY";
+      document.getElementById('modal-sub').textContent = res === DRAW ? "PARITY ACHIEVED" : `PLAYER ${res} CONQUERED THE GRID`;
+      document.getElementById('modal-victory').classList.add('active');
+    }
+
+    function closeModal() { document.getElementById('modal-victory').classList.remove('active'); }
+
+    /* Custom Production Lobby Controls */
+    function openOnlineLobby() {
+      const code = "UTTT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      document.getElementById('lobby-code-display').textContent = code;
+      document.getElementById('modal-lobby').classList.add('active');
+    }
+    function closeLobbyModal() { document.getElementById('modal-lobby').classList.remove('active'); }
+    function copyLobbyLink() {
+      const code = document.getElementById('lobby-code-display').textContent;
+      navigator.clipboard.writeText(`https://ultimatetictactoe.com/m/${code}`);
+      alert('Lobby Link Copied to Clipboard!');
+    }
+
+    /* Dashboard & Analytics Engine */
+    function openDashboard() {
+      const rate = state.stats.games ? Math.round((state.stats.wins / state.stats.games) * 100) : 0;
+      document.getElementById('stat-winrate').textContent = `${rate}%`;
+      document.getElementById('stat-streak').textContent = state.stats.streak;
+      document.getElementById('stat-elo').textContent = state.stats.elo;
+
+      const rows = document.getElementById('match-history-rows');
+      if (state.history.length === 0) {
+        rows.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No recorded matches yet.</td></tr>';
+      } else {
+        rows.innerHTML = state.history.slice(0, 5).map(h => `
+          <tr>
+            <td>${h.mode}</td>
+            <td style="color: ${h.result === 'WIN' ? 'var(--cyan-glow)' : 'var(--pink-glow)'}">${h.result}</td>
+            <td>${h.elo}</td>
+          </tr>
+        `).join('');
+      }
+      showScreen('screen-stats');
+    }
+
+    function openPracticeSandbox() {
+      sandboxGrid = Array(9).fill(EMPTY);
+      renderSandbox();
+      document.getElementById('sandbox-output').textContent = "";
+      showScreen('screen-sandbox');
+    }
+    function clearSandbox() { sandboxGrid = Array(9).fill(EMPTY); renderSandbox(); }
+    function renderSandbox() {
+      const root = document.getElementById('sandbox-board');
+      root.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (sandboxGrid[i] !== EMPTY) {
+          cell.classList.add('occupied', sandboxGrid[i] === X ? 'x-symbol' : 'o-symbol');
+          cell.textContent = sandboxGrid[i];
+        }
+        cell.onclick = () => { sandboxGrid[i] = sandboxBrush; renderSandbox(); };
+        root.appendChild(cell);
+      }
+    }
+    function evaluateSandbox() {
+      const b = new SingleEngine(3);
+      b.cells = [...sandboxGrid];
+      const ai = new AIPersona('grandmaster');
+      const m = ai.chooseSingle(b, X);
+      document.getElementById('sandbox-output').textContent = `Optimal Next Move: Cell ${m + 1}`;
+    }
+
+    loadStorage();
+  </script>
+</body>
+</html>
